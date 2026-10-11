@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>guess the words</title>
+<style>
+*{box-sizing:border-box} :root{--primary-color:#f44336}
+body{margin:0;background:#eee;font-family:Arial,sans-serif;min-height:100vh}
+h1{padding:20px;text-align:center;margin:0 0 20px;background:#fff}
+.guess-game{width:1000px;max-width:100%;margin:0 auto;display:flex;gap:20px;padding:10px;flex-wrap:wrap;justify-content:center}
+.game-area{flex:1;min-width:300px}
+.inputs>div{margin-bottom:12px;display:flex;align-items:center;justify-content:center}
+.inputs>div span{font-size:16px;font-weight:bold;margin-right:8px;width:50px;text-align:left}
+.inputs>div.disabled-input{opacity:0.5;pointer-events:none}
+.inputs input{width:40px;height:40px;margin:0 2px;text-align:center;font-size:22px;font-weight:bold;background:#fff;border:none;border-bottom:3px solid #333;text-transform:uppercase}
+.inputs input.yes-in-place{background:#f89e13!important;color:#fff;border-color:#f89e13}
+.inputs input.not-in-place{background:#18ba89!important;color:#fff;border-color:#18ba89}
+.inputs input.no{background:#27303f!important;color:#fff;border-color:#27303f}
+.controls{display:flex;gap:10px;justify-content:center;margin:20px 0}
+.check{background:var(--primary-color);color:#fff;border:none;padding:10px 20px;font-size:18px;font-weight:bold;border-radius:6px;cursor:pointer;flex:1}
+.hints{background:#009688;color:#fff;border:none;padding:10px 20px;font-size:18px;font-weight:bold;border-radius:6px;cursor:pointer}
+.key-colors{width:250px}
+.key-color{display:flex;align-items:center;padding:10px;background:#fff;margin-bottom:8px;border-radius:4px}
+.key{width:20px;height:20px;border-radius:50%;margin-right:10px;flex-shrink:0}
+.key.yes-in-place{background:#f89e13}.key.not-in-place{background:#18ba89}.key.no{background:#27303f}
+.key-text{font-size:13px;font-weight:bold}
+.message{text-align:center;font-weight:bold;font-size:20px;min-height:60px;margin-top:15px}
+.message span{display:block;font-size:35px;color:var(--primary-color);margin-top:10px}
+footer{text-align:center;padding:15px;background:#333;color:#fff;margin-top:20px}
+</style>
+</head>
+<body>
+<h1>guess the words</h1>
+<div class="guess-game">
+  <div class="game-area">
+    <div class="inputs"></div>
+    <div class="controls">
+      <button class="check">check words</button>
+      <button class="hints"><span>2</span> hints</button>
+    </div>
+    <div class="message"></div>
+  </div>
+  <div class="key-colors">
+    <h2 style="font-size:16px">key colours</h2>
+    <div class="key-color"><div class="key yes-in-place"></div><div class="key-text">correct and in place</div></div>
+    <div class="key-color"><div class="key not-in-place"></div><div class="key-text">correct but not in place</div></div>
+    <div class="key-color"><div class="key no"></div><div class="key-text">wrong letter</div></div>
+  </div>
+</div>
+<footer>Game By Elzero</footer>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  let wordToGuess = "";
+  const words = ["elzero","coding","school","ghareb","ahmed","python"];
+  wordToGuess = words[Math.floor(Math.random() * words.length)];
+  const numberOfTries = 6;
+  const numberOfLetters = wordToGuess.length;
+  let currentTries = 1;
+  let hints = 2;
+
+  const inputsContainer = document.querySelector(".inputs");
+  const messageArea = document.querySelector(".message");
+  const checkButton = document.querySelector(".check");
+  const hintButton = document.querySelector(".hints");
+  const hintSpan = document.querySelector(".hints span");
+
+  function generateInputs() {
+    if (!inputsContainer) return;
+    inputsContainer.innerHTML = "";
+    for (let i = 1; i <= numberOfTries; i++) {
+      const tryDiv = document.createElement("div");
+      tryDiv.classList.add(`try-${i}`);
+      tryDiv.classList.add("try");
+      if (i!== 1) tryDiv.classList.add("disabled-input");
+
+      const span = document.createElement("span");
+      span.textContent = `Try ${i}`;
+      tryDiv.appendChild(span);
+
+      for (let j = 1; j <= numberOfLetters; j++) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.id = `guess-${i}-letter-${j}`;
+        input.maxLength = 1;
+        if (i!== 1) input.disabled = true;
+        tryDiv.appendChild(input);
+      }
+      inputsContainer.appendChild(tryDiv);
+    }
+    inputsContainer.querySelectorAll("input")[0]?.focus();
+
+    // حركة اوتوماتيك بين الحروف
+    const allInputs = document.querySelectorAll(".inputs input");
+    allInputs.forEach((input, index) => {
+      input.addEventListener("input", function() {
+        this.value = this.value.toUpperCase();
+        if (this.value!== "" && allInputs[index + 1]) {
+          let next = allInputs[index + 1];
+          if (next.id.includes(`-${currentTries}-`)) next.focus();
+        }
+      });
+      input.addEventListener("keydown", function(e) {
+        if (e.key === "Backspace" && this.value === "" && index > 0) {
+          let prev = allInputs[index - 1];
+          if (prev &&!prev.disabled && prev.id.includes(`-${currentTries}-`)) {
+            prev.focus();
+          }
+        }
+      });
+    });
+  }
+
+  checkButton?.addEventListener("click", () => {
+    let win = true;
+    for (let i = 1; i <= numberOfLetters; i++) {
+      let field = document.querySelector(`#guess-${currentTries}-letter-${i}`);
+      if (!field) continue;
+      let letter = field.value.toLowerCase();
+      let actual = wordToGuess[i - 1];
+
+      if (letter === actual) {
+        field.classList.add("yes-in-place");
+      } else if (wordToGuess.includes(letter) && letter!== "") {
+        field.classList.add("not-in-place");
+        win = false;
+      } else {
+        field.classList.add("no");
+        win = false;
+      }
+    }
+
+    if (win) {
+      if (messageArea) messageArea.innerHTML = `You Win <span>${wordToGuess}</span>`;
+      document.querySelectorAll(".inputs input").forEach(i => i.disabled = true);
+      if (checkButton) checkButton.disabled = true;
+      if (hintButton) hintButton.disabled = true;
+    } else {
+      let currentDiv = document.querySelector(`.try-${currentTries}`);
+      if (currentDiv) {
+        currentDiv.classList.add("disabled-input");
+        currentDiv.querySelectorAll("input").forEach(i => i.disabled = true);
+      }
+      currentTries++;
+      let nextDiv = document.querySelector(`.try-${currentTries}`);
+      if (nextDiv) {
+        nextDiv.classList.remove("disabled-input");
+        let nextInputs = nextDiv.querySelectorAll("input");
+        nextInputs.forEach(i => i.disabled = false);
+        nextInputs[0]?.focus();
+      } else {
+        if (messageArea) messageArea.innerHTML = `You Lose <span>${wordToGuess}</span>`;
+        if (checkButton) checkButton.disabled = true;
+        if (hintButton) hintButton.disabled = true;
+      }
+    }
+  });
+
+  hintButton?.addEventListener("click", () => {
+    if (hints <= 0 ||!hintSpan) return;
+    hints--;
+    hintSpan.textContent = hints;
+    if (hints === 0) hintButton.disabled = true;
+    // منطق الهنت
+    let enabledInputs = document.querySelectorAll(`.try-${currentTries} input:not([disabled])`);
+    let emptyInputs = Array.from(enabledInputs).filter(i => i.value === "");
+    if (emptyInputs.length > 0) {
+      let random = emptyInputs[Math.floor(Math.random() * emptyInputs.length)];
+      let index = random.id.split("-")[3] - 1;
+      random.value = wordToGuess[index].toUpperCase();
+    }
+  });
+
+  generateInputs();
+});
+</script>
+</body>
+</html>
